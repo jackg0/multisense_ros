@@ -3,10 +3,12 @@
   <arg name="ip_address" default="10.66.171.21" />
   <arg name="namespace"  default="multisense" />
   <arg name="nodes_prefix" default="$(arg namespace)" />
+  <arg name="tf_prefix" default="$(arg namespace)" />
 
   <!-- ROS Driver -->
    <node pkg="multisense_ros" ns="$(arg namespace)" type="ros_driver" name="$(arg nodes_prefix)_driver" output="screen">
      <param name="sensor_ip"   value="$(arg ip_address)" />
+     <param name="tf_prefix"  value="$(arg tf_prefix)" />
   </node>
 
 </launch>
