@@ -816,7 +816,11 @@ void Camera::jpegImageCallback(const image::Header& header)
         return;
     }
 
-    const ros::Time t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    ros::Time t = ros::Time::now();
+    if (header.timeSeconds != 0)
+    {
+        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    }
 
     const uint32_t height    = header.height;
     const uint32_t width     = header.width;
@@ -886,7 +890,11 @@ void Camera::disparityImageCallback(const image::Header& header)
 
     const uint32_t imageSize = (header.width * header.height * header.bitsPerPixel) / 8;
 
-    const ros::Time t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    ros::Time t = ros::Time::now();
+    if (header.timeSeconds != 0)
+    {
+        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    }
 
     switch(header.source) {
     case Source_Disparity:
@@ -1055,7 +1063,11 @@ void Camera::monoCallback(const image::Header& header)
         return;
     }
 
-    ros::Time t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    ros::Time t = ros::Time::now();
+    if (header.timeSeconds != 0)
+    {
+        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    }
 
     switch(header.source) {
     case Source_Luma_Left:
@@ -1163,7 +1175,11 @@ void Camera::rectCallback(const image::Header& header)
         return;
     }
 
-    ros::Time t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    ros::Time t = ros::Time::now();
+    if (header.timeSeconds != 0)
+    {
+        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    }
 
     switch(header.source) {
     case Source_Luma_Rectified_Left:
@@ -1295,7 +1311,11 @@ void Camera::depthCallback(const image::Header& header)
         return;
     }
 
-    const ros::Time t(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    ros::Time t = ros::Time::now();
+    if (header.timeSeconds != 0)
+    {
+        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    }
 
     const float    bad_point = std::numeric_limits<float>::quiet_NaN();
     const uint32_t depthSize = header.height * header.width * sizeof(float);
@@ -1468,7 +1488,11 @@ void Camera::pointCloudCallback(const image::Header& header)
         return;
     }
 
-    const ros::Time t(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    ros::Time t = ros::Time::now();
+    if (header.timeSeconds != 0)
+    {
+        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    }
 
     //
     // Resize our corresponding pointclouds if we plan on publishing them
@@ -1750,7 +1774,11 @@ void Camera::colorImageCallback(const image::Header& header)
         return;
     }
 
-    const ros::Time t(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    ros::Time t = ros::Time::now();
+    if (header.timeSeconds != 0)
+    {
+        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+    }
 
     switch (header.source)
     {
