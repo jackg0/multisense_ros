@@ -317,6 +317,12 @@ Camera::Camera(Channel* driver, const std::string& tf_prefix) :
     }
 
     //
+    // Get timesync parameters
+    device_nh_.getParam("ptp_time_offset_sec", ptp_time_offset_sec_);
+    device_nh_.getParam("ptp_time_sync", ptp_time_sync_);
+    device_nh_.getParam("network_time_sync", network_time_sync_);
+
+    //
     // Get the camera config
 
     image::Config image_config;
@@ -788,8 +794,18 @@ void Camera::histogramCallback(const image::Header& header)
         Status status = driver_->getImageHistogram(header.frameId, mh);
         if (Status_Ok == status) {
             rh.frame_count = header.frameId;
-            rh.time_stamp  = ros::Time(header.timeSeconds,
-                                       1000 * header.timeMicroSeconds);
+            rh.time_stamp  = ros::Time::now();
+
+            if (header.timeSeconds != 0)
+            {
+                rh.time_stamp = ros::Time(header.timeSeconds,
+                    1000 * header.timeMicroSeconds);
+                if (ptp_time_sync_ && !network_time_sync_)
+                {
+                    rh.time_stamp += ros::Duration(ptp_time_offset_sec_);
+                }
+            }
+
             rh.width  = header.width;
             rh.height = header.height;
             switch(header.source) {
@@ -820,6 +836,10 @@ void Camera::jpegImageCallback(const image::Header& header)
     if (header.timeSeconds != 0)
     {
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+        if (ptp_time_sync_ && !network_time_sync_)
+        {
+            t += ros::Duration(ptp_time_offset_sec_);
+        }
     }
 
     const uint32_t height    = header.height;
@@ -894,6 +914,10 @@ void Camera::disparityImageCallback(const image::Header& header)
     if (header.timeSeconds != 0)
     {
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+        if (ptp_time_sync_ && !network_time_sync_)
+        {
+            t += ros::Duration(ptp_time_offset_sec_);
+        }
     }
 
     switch(header.source) {
@@ -1067,6 +1091,10 @@ void Camera::monoCallback(const image::Header& header)
     if (header.timeSeconds != 0)
     {
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+        if (ptp_time_sync_ && !network_time_sync_)
+        {
+            t += ros::Duration(ptp_time_offset_sec_);
+        }
     }
 
     switch(header.source) {
@@ -1179,6 +1207,10 @@ void Camera::rectCallback(const image::Header& header)
     if (header.timeSeconds != 0)
     {
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+        if (ptp_time_sync_ && !network_time_sync_)
+        {
+            t += ros::Duration(ptp_time_offset_sec_);
+        }
     }
 
     switch(header.source) {
@@ -1315,6 +1347,10 @@ void Camera::depthCallback(const image::Header& header)
     if (header.timeSeconds != 0)
     {
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+        if (ptp_time_sync_ && !network_time_sync_)
+        {
+            t += ros::Duration(ptp_time_offset_sec_);
+        }
     }
 
     const float    bad_point = std::numeric_limits<float>::quiet_NaN();
@@ -1492,6 +1528,10 @@ void Camera::pointCloudCallback(const image::Header& header)
     if (header.timeSeconds != 0)
     {
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+        if (ptp_time_sync_ && !network_time_sync_)
+        {
+            t += ros::Duration(ptp_time_offset_sec_);
+        }
     }
 
     //
@@ -1745,9 +1785,19 @@ void Camera::rawCamDataCallback(const image::Header& header)
             raw_cam_data_.gain              = left_luma_rect.gain;
             raw_cam_data_.exposure_time     = left_luma_rect.exposure;
             raw_cam_data_.frame_count       = left_luma_rect.frameId;
-            raw_cam_data_.time_stamp        = ros::Time(left_luma_rect.timeSeconds, 1000 * left_luma_rect.timeMicroSeconds);
+            raw_cam_data_.time_stamp        = ros::Time::now();
             raw_cam_data_.width             = left_luma_rect.width;
             raw_cam_data_.height            = left_luma_rect.height;
+
+            if (left_luma_rect.timeSeconds != 0)
+            {
+                raw_cam_data_.time_stamp = ros::Time(header.timeSeconds,
+                    1000 * header.timeMicroSeconds);
+                if (ptp_time_sync_ && !network_time_sync_)
+                {
+                    raw_cam_data_.time_stamp += ros::Duration(ptp_time_offset_sec_);
+                }
+            }
 
             const uint32_t disparity_size = header.width * header.height;
 
@@ -1778,6 +1828,10 @@ void Camera::colorImageCallback(const image::Header& header)
     if (header.timeSeconds != 0)
     {
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
+        if (ptp_time_sync_ && !network_time_sync_)
+        {
+            t += ros::Duration(ptp_time_offset_sec_);
+        }
     }
 
     switch (header.source)
