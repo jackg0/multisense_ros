@@ -328,6 +328,13 @@ private:
     // Has a 3rd aux color camera
 
     bool has_aux_camera_ = false;
+
+    //
+    // Timesync settings
+    bool ptp_time_sync_ = false;
+    bool network_time_sync_ = false;
+
+    int32_t ptp_time_offset_sec_ = 0;
 };
 
 }
