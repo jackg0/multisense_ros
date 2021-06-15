@@ -318,7 +318,7 @@ Camera::Camera(Channel* driver, const std::string& tf_prefix) :
 
     //
     // Get timesync parameters
-    device_nh_.getParam("ptp_time_offset_sec", ptp_time_offset_sec_);
+    device_nh_.getParam("ptp_time_offset_secs", ptp_time_offset_secs_);
     device_nh_.getParam("ptp_time_sync", ptp_time_sync_);
     device_nh_.getParam("network_time_sync", network_time_sync_);
 
@@ -795,7 +795,7 @@ void Camera::histogramCallback(const image::Header& header)
                     1000 * header.timeMicroSeconds);
                 if (ptp_time_sync_ && !network_time_sync_)
                 {
-                    rh.time_stamp += ros::Duration(ptp_time_offset_sec_);
+                    rh.time_stamp += ros::Duration(ptp_time_offset_secs_);
                 }
             }
 
@@ -831,7 +831,7 @@ void Camera::jpegImageCallback(const image::Header& header)
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
         if (ptp_time_sync_ && !network_time_sync_)
         {
-            t += ros::Duration(ptp_time_offset_sec_);
+            t += ros::Duration(ptp_time_offset_secs_);
         }
     }
 
@@ -909,7 +909,7 @@ void Camera::disparityImageCallback(const image::Header& header)
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
         if (ptp_time_sync_ && !network_time_sync_)
         {
-            t += ros::Duration(ptp_time_offset_sec_);
+            t += ros::Duration(ptp_time_offset_secs_);
         }
     }
 
@@ -1086,7 +1086,7 @@ void Camera::monoCallback(const image::Header& header)
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
         if (ptp_time_sync_ && !network_time_sync_)
         {
-            t += ros::Duration(ptp_time_offset_sec_);
+            t += ros::Duration(ptp_time_offset_secs_);
         }
     }
 
@@ -1202,7 +1202,7 @@ void Camera::rectCallback(const image::Header& header)
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
         if (ptp_time_sync_ && !network_time_sync_)
         {
-            t += ros::Duration(ptp_time_offset_sec_);
+            t += ros::Duration(ptp_time_offset_secs_);
         }
     }
 
@@ -1342,7 +1342,7 @@ void Camera::depthCallback(const image::Header& header)
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
         if (ptp_time_sync_ && !network_time_sync_)
         {
-            t += ros::Duration(ptp_time_offset_sec_);
+            t += ros::Duration(ptp_time_offset_secs_);
         }
     }
 
@@ -1523,7 +1523,7 @@ void Camera::pointCloudCallback(const image::Header& header)
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
         if (ptp_time_sync_ && !network_time_sync_)
         {
-            t += ros::Duration(ptp_time_offset_sec_);
+            t += ros::Duration(ptp_time_offset_secs_);
         }
     }
 
@@ -1772,7 +1772,7 @@ void Camera::rawCamDataCallback(const image::Header& header)
                     1000 * header.timeMicroSeconds);
                 if (ptp_time_sync_ && !network_time_sync_)
                 {
-                    raw_cam_data_.time_stamp += ros::Duration(ptp_time_offset_sec_);
+                    raw_cam_data_.time_stamp += ros::Duration(ptp_time_offset_secs_);
                 }
             }
 
@@ -1807,7 +1807,7 @@ void Camera::colorImageCallback(const image::Header& header)
         t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
         if (ptp_time_sync_ && !network_time_sync_)
         {
-            t += ros::Duration(ptp_time_offset_sec_);
+            t += ros::Duration(ptp_time_offset_secs_);
         }
     }
 
