@@ -736,7 +736,7 @@ Camera::Camera(Channel* driver, const std::string& tf_prefix) :
     //
     // Diagnostics
     diagnostic_updater_.setHardwareID(device_info_.name + " " + std::to_string(device_info_.hardwareRevision));
-    diagnostic_updater_.add("device_status", this, &Camera::deviceInfoDiagnostic);
+    diagnostic_updater_.add("device_info", this, &Camera::deviceInfoDiagnostic);
     diagnostic_updater_.add("device_status", this, &Camera::deviceStatusDiagnostic);
     diagnostic_trigger_ = device_nh_.createTimer(ros::Duration(1), &Camera::diagnosticTimerCallback, this);
 }
