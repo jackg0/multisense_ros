@@ -299,7 +299,8 @@ Camera::Camera(Channel* driver, const std::string& tf_prefix) :
     pointcloud_max_range_(15.0),
     last_frame_id_(-1),
     border_clip_type_(BorderClip::NONE),
-    border_clip_value_(0.0)
+    border_clip_value_(0.0),
+    ptp_time_stamp_in_use_(false)
 {
     //
     // Query device and version information from sensor
@@ -738,6 +739,7 @@ Camera::Camera(Channel* driver, const std::string& tf_prefix) :
     diagnostic_updater_.setHardwareID(device_info_.name + " " + std::to_string(device_info_.hardwareRevision));
     diagnostic_updater_.add("device_info", this, &Camera::deviceInfoDiagnostic);
     diagnostic_updater_.add("device_status", this, &Camera::deviceStatusDiagnostic);
+    diagnostic_updater_.add("ptp_status", this, &Camera::ptpStatusDiagnostic);
     diagnostic_trigger_ = device_nh_.createTimer(ros::Duration(1), &Camera::diagnosticTimerCallback, this);
 }
 
@@ -794,18 +796,7 @@ void Camera::histogramCallback(const image::Header& header)
         Status status = driver_->getImageHistogram(header.frameId, mh);
         if (Status_Ok == status) {
             rh.frame_count = header.frameId;
-            rh.time_stamp  = ros::Time::now();
-
-            if (header.timeSeconds != 0)
-            {
-                rh.time_stamp = ros::Time(header.timeSeconds,
-                    1000 * header.timeMicroSeconds);
-                if (ptp_time_sync_ && !network_time_sync_)
-                {
-                    rh.time_stamp += ros::Duration(ptp_time_offset_secs_);
-                }
-            }
-
+            rh.time_stamp = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
             rh.width  = header.width;
             rh.height = header.height;
             switch(header.source) {
@@ -832,15 +823,7 @@ void Camera::jpegImageCallback(const image::Header& header)
         return;
     }
 
-    ros::Time t = ros::Time::now();
-    if (header.timeSeconds != 0)
-    {
-        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
-        if (ptp_time_sync_ && !network_time_sync_)
-        {
-            t += ros::Duration(ptp_time_offset_secs_);
-        }
-    }
+    ros::Time t = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
 
     const uint32_t height    = header.height;
     const uint32_t width     = header.width;
@@ -910,15 +893,7 @@ void Camera::disparityImageCallback(const image::Header& header)
 
     const uint32_t imageSize = (header.width * header.height * header.bitsPerPixel) / 8;
 
-    ros::Time t = ros::Time::now();
-    if (header.timeSeconds != 0)
-    {
-        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
-        if (ptp_time_sync_ && !network_time_sync_)
-        {
-            t += ros::Duration(ptp_time_offset_secs_);
-        }
-    }
+    ros::Time t = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
 
     switch(header.source) {
     case Source_Disparity:
@@ -1087,15 +1062,7 @@ void Camera::monoCallback(const image::Header& header)
         return;
     }
 
-    ros::Time t = ros::Time::now();
-    if (header.timeSeconds != 0)
-    {
-        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
-        if (ptp_time_sync_ && !network_time_sync_)
-        {
-            t += ros::Duration(ptp_time_offset_secs_);
-        }
-    }
+    ros::Time t = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
 
     switch(header.source) {
     case Source_Luma_Left:
@@ -1203,15 +1170,7 @@ void Camera::rectCallback(const image::Header& header)
         return;
     }
 
-    ros::Time t = ros::Time::now();
-    if (header.timeSeconds != 0)
-    {
-        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
-        if (ptp_time_sync_ && !network_time_sync_)
-        {
-            t += ros::Duration(ptp_time_offset_secs_);
-        }
-    }
+    ros::Time t = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
 
     switch(header.source) {
     case Source_Luma_Rectified_Left:
@@ -1343,15 +1302,7 @@ void Camera::depthCallback(const image::Header& header)
         return;
     }
 
-    ros::Time t = ros::Time::now();
-    if (header.timeSeconds != 0)
-    {
-        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
-        if (ptp_time_sync_ && !network_time_sync_)
-        {
-            t += ros::Duration(ptp_time_offset_secs_);
-        }
-    }
+    ros::Time t = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
 
     const float    bad_point = std::numeric_limits<float>::quiet_NaN();
     const uint32_t depthSize = header.height * header.width * sizeof(float);
@@ -1524,15 +1475,7 @@ void Camera::pointCloudCallback(const image::Header& header)
         return;
     }
 
-    ros::Time t = ros::Time::now();
-    if (header.timeSeconds != 0)
-    {
-        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
-        if (ptp_time_sync_ && !network_time_sync_)
-        {
-            t += ros::Duration(ptp_time_offset_secs_);
-        }
-    }
+    ros::Time t = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
 
     //
     // Resize our corresponding pointclouds if we plan on publishing them
@@ -1785,19 +1728,9 @@ void Camera::rawCamDataCallback(const image::Header& header)
             raw_cam_data_.gain              = left_luma_rect.gain;
             raw_cam_data_.exposure_time     = left_luma_rect.exposure;
             raw_cam_data_.frame_count       = left_luma_rect.frameId;
-            raw_cam_data_.time_stamp        = ros::Time::now();
+            raw_cam_data_.time_stamp        = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
             raw_cam_data_.width             = left_luma_rect.width;
             raw_cam_data_.height            = left_luma_rect.height;
-
-            if (left_luma_rect.timeSeconds != 0)
-            {
-                raw_cam_data_.time_stamp = ros::Time(header.timeSeconds,
-                    1000 * header.timeMicroSeconds);
-                if (ptp_time_sync_ && !network_time_sync_)
-                {
-                    raw_cam_data_.time_stamp += ros::Duration(ptp_time_offset_secs_);
-                }
-            }
 
             const uint32_t disparity_size = header.width * header.height;
 
@@ -1824,15 +1757,7 @@ void Camera::colorImageCallback(const image::Header& header)
         return;
     }
 
-    ros::Time t = ros::Time::now();
-    if (header.timeSeconds != 0)
-    {
-        t = ros::Time(header.timeSeconds, 1000 * header.timeMicroSeconds);
-        if (ptp_time_sync_ && !network_time_sync_)
-        {
-            t += ros::Duration(ptp_time_offset_secs_);
-        }
-    }
+    ros::Time t = imageTimestampToRosTime(header.timeSeconds, header.timeMicroSeconds);
 
     switch (header.source)
     {
@@ -2118,6 +2043,25 @@ void Camera::groundSurfaceSplineCallback(const ground_surface::Header& header)
     ground_surface_spline_pub_.publish(ground_surface_utilities::eigenToPointcloud(eigen_pcl, frame_id_rectified_left_));
 }
 
+ros::Time Camera::imageTimestampToRosTime(uint32_t time_secs, uint32_t time_microsecs)
+{
+    // When camera has ptp enabled and there is no ptp lock,
+    // the image timestamp equals 0
+    if (time_secs == 0)
+    {
+        return ros::Time::now();
+    }
+
+    auto time_stamp = ros::Time(time_secs, 1000 * time_microsecs);
+    if (ptp_time_sync_ && time_secs > std::abs(ptp_time_offset_secs_))
+    {
+        time_stamp += ros::Duration(ptp_time_offset_secs_);
+        ptp_time_stamp_in_use_ = true;
+    }
+
+    return time_stamp;
+}
+
 void Camera::updateConfig(const image::Config& config)
 {
     stereo_calibration_manager_->updateConfig(config);
@@ -2289,6 +2233,25 @@ void Camera::deviceStatusDiagnostic(diagnostic_updater::DiagnosticStatusWrapper&
     } else {
         stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "MultiSense Status: ERROR - Unable to retrieve status");
     }
+}
+
+void Camera::ptpStatusDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat)
+{
+    stat.add("ptp enabled", ptp_time_sync_);
+    stat.add("ptp status",  ptp_time_stamp_in_use_);
+    if (!ptp_time_sync_)
+    {
+        stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "PTP status: Disabled.");
+        return;
+    }
+
+    if (ptp_time_stamp_in_use_)
+    {
+        stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "PTP status: OK");
+    } else {
+        stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "PTP status: Uncalibrated");
+    }
+    ptp_time_stamp_in_use_ = false;
 }
 
 void Camera::diagnosticTimerCallback(const ros::TimerEvent&)
